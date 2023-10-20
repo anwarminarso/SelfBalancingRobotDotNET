@@ -32,4 +32,4 @@ msbuild.wrn
 
 # Visual Studio 2015
 .vs/
-Others/
+Source/SelfBalancingRobot.WebUI.Resources/
