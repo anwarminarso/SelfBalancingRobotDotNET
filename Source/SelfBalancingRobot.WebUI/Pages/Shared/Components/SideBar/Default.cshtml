@@ -1,0 +1,29 @@
+﻿@model SelfBalancingRobot.WebUI.Models.SideBarMenu
+@{
+    string code = string.Empty;
+    if (Model.CurrentMenu != null)
+        code = Model.CurrentMenu.code;
+}
+<div class="sidebar" data-image="/img/sidebar-5.jpg" data-color="green">
+    <div class="sidebar-wrapper">
+        <div class="logo">
+            <a href="/" class="simple-text logo-mini">
+                <img src="~/img/logo-32.png" />
+            </a>
+            <a href="/" class="simple-text logo-normal">
+                Self-Balancing Robot .NET
+            </a>
+        </div>
+        <ul class="nav">
+            @foreach (var menu in Model.Menus)
+            {
+                <li class='nav-item @(code == menu.code ? "active" : "")'>
+                    <a class="nav-link" asp-area="" asp-page="@menu.url">
+                        <i class="@menu.iconClass"></i>
+                        <p>@menu.title</p>
+                    </a>
+                </li>
+            }
+        </ul>
+    </div>
+</div>
