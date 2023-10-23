@@ -10,8 +10,9 @@
 }
 @section Head {
     <link rel="stylesheet" src="/css/fa-light.css" />
+    <link rel="stylesheet" src="/js/statistics/chartjs/chartjs.min.css" />
     <style type="text/css">
-        #cnv {
+        #orientationChart, #accChart, #gyroChart {
             width: 100%;
             height: auto;
         }
@@ -25,7 +26,7 @@
                 <p class="card-category">Orientation in euler angle 3D</p>
             </div>
             <div class="card-body">
-                <canvas id="cnv" style="min-height: 150px; max-height: 400px"></canvas>
+                <canvas id="orientationChart" style="min-height: 150px; max-height: 400px"></canvas>
             </div>
             <div class="card-footer">
                 <div class="stats">
@@ -62,11 +63,40 @@
         </div>
     </div>
 </div>
+
+<div class="row">
+    <div class="col-md-6 col-sm-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Acceleration (m/s<sup>2</sup>)</h4>
+            </div>
+            <div class="card-body">
+                <canvas id="accChart" style="min-height: 150px; max-height: 400px"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-sm-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Gyro (°/s<sup>2</sup>)</h4>
+            </div>
+            <div class="card-body">
+                <canvas id="gyroChart" style="min-height: 150px; max-height: 400px"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
 @section Scripts {
 
+    <script src="~/js/moment/moment.js"></script>
     <script type="text/javascript" src="/js/signalr/signalr.min.js"></script>
+    <script type="text/javascript" src="/js/statistics/chartjs/chartjs.bundle.min.js"></script>
     <script type="text/javascript">
         let currentData = @Html.Raw(Json.Serialize(imuData));
+        let histLst = @Html.Raw(Json.Serialize(histLst));
+        let maxData = @SelfBalancingRobot.WebUI.Models.IMUContext.MaxHistoryLength;
+        var hourFormat = 'HH:mm';
+        var timeFormat = 'DD MMM YYYY HH:mm';
         var obj3D = [];
         var cube_center = null;
         var dtContext = {};
@@ -245,6 +275,140 @@
 
             return [board, neck, arrow];
         }
+
+        function createChart(ctx, opts) {
+            let defOpts = {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'X',
+                            data: [],
+                            //lineTension: 0,
+                            fill: false,
+                            backgroundColor: '#007bff',
+                            borderColor: '#007bff',
+                            borderWidth: 1,
+                            pointBackgroundColor: '#337bff'
+                        },
+                        {
+                            label: 'Y',
+                            data: [],
+                            //lineTension: 0,
+                            fill: false,
+                            backgroundColor: '#e74c3c',
+                            borderColor: '#e74c3c',
+                            borderWidth: 1,
+                            pointBackgroundColor: '#c0392b'
+                        },
+                        {
+                            label: 'Z',
+                            data: [],
+                            //lineTension: 0,
+                            fill: false,
+                            backgroundColor: '#1abc9c',
+                            borderColor: '#1abc9c',
+                            borderWidth: 1,
+                            pointBackgroundColor: '#16a085'
+                        }]
+                },
+                options: {
+                    scales: {
+                        xAxes: [{
+                            type: 'time',
+                            offset: true,
+                            time: {
+                                parser: hourFormat,
+                                tooltipFormat: timeFormat
+                            },
+                            scaleLabel: {
+                                display: false,
+                                labelString: 'Time'
+                            },
+                            ticks: {
+                                major: {
+                                    enabled: true,
+                                    fontStyle: 'bold'
+                                },
+                                source: 'data',
+                                autoSkip: true,
+                                autoSkipPadding: 20,
+                                maxRotation: 0,
+                                sampleSize: 100,
+                                beginAtZero: true,
+                            }
+                        }],
+                        yAxes: [{
+                            ticks: {
+                                beginAtZero: true,
+                                autoSkip: true,
+                                autoSkipPadding: 10
+                            }
+                        }]
+                    },
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    elements: {
+                        point: {
+                            radius: 1
+                        }
+                    },
+                    legend: {
+                        position: 'bottom',
+                        display: true,
+                    }
+                }
+            };
+            if (!opts)
+                opts = {};
+            let newOpts = $.extend(true, {}, defOpts, opts);
+            var chart = new Chart(ctx, newOpts);
+            return chart;
+        };
+        function initChartHistory(chartName) {
+            var config = dtContext[chartName].config;
+            config.data.labels = [];
+            config.data.datasets[0].data = [];
+            config.data.datasets[1].data = [];
+            config.data.datasets[2].data = [];
+            for (var i = 0; i < histLst.length; i++) {
+                let rawData = histLst[i];
+                let dt = new Date(rawData.Time);
+                for (var j = 0; j < 3; j++) {
+                    let val = parseFloat(rawData.Data[chartName][j]);
+                    if (val)
+                        val = parseFloat(val.toFixed(2));
+                    config.data.datasets[j].data.push({
+                        x: dt,
+                        y: val
+                    });
+                }
+                config.data.labels.push(dt);
+            }
+
+            dtContext[chartName].update();
+        }
+        function updateChart(chartName, imuData) {
+            var config = dtContext[chartName].config;
+            let dt = new Date(imuData.Time);
+            for (var j = 0; j < 3; j++) {
+                let val = parseFloat(imuData.Data[chartName][j]);
+                if (val)
+                    val = parseFloat(val.toFixed(2));
+                config.data.datasets[j].data.push({
+                    x: dt,
+                    y: val
+                });
+            }
+            if (config.data.datasets[0].data.length >= maxData) {
+                config.data.labels.splice(0, 1);
+                for (var j = 0; j < 3; j++) {
+                    config.data.datasets[j].data.splice(0, 1);
+                }
+            }
+            dtContext[chartName].update();
+        }
         function updateAll(imuData) {
             cvs.width = cvs.offsetWidth;
             cvs.height = cvs.offsetHeight;
@@ -261,23 +425,14 @@
             $("#tbPitch").val(imuData.Data.ypr[1]);
             $("#tbRoll").val(imuData.Data.ypr[2]);
 
-            // $("#tbGyroX").val(imuData[0]);
-            // $("#tbGyroY").val(imuData[1]);
-            // $("#tbGyroZ").val(imuData[2]);
-
-            // $("#tbAccX").val(imuData[3]);
-            // $("#tbAccY").val(imuData[4]);
-            // $("#tbAccZ").val(imuData[5]);
-
-            // $("#tbMotor1").val(motorData[0]);
-            // $("#tbMotor2").val(motorData[1]);
-            // setTimeout(requestAll, 100);
+            updateChart('acc', imuData);
+            updateChart('gyro', imuData);
         }
         $(function () {
             Object.defineProperty(WebSocket, 'OPEN', {
                 value: 1,
             });
-            cvs = document.getElementById('cnv');
+            cvs = document.getElementById('orientationChart');
             cvs.width = cvs.offsetWidth;
             cvs.height = cvs.offsetHeight;
             var dx = cvs.width / 2;
@@ -294,6 +449,11 @@
             // First render
             render(obj3D, cvsContext, dx, dy);
             dtContext['Orientation'] = cvsContext;
+
+            dtContext['acc'] = createChart(document.getElementById('accChart'));
+            dtContext['gyro'] = createChart(document.getElementById('gyroChart'));
+            initChartHistory('acc');
+            initChartHistory('gyro');
 
             var connection = new signalR.HubConnectionBuilder().withUrl("/ws/imu").build();
             connection.on("Update", function (result) {
