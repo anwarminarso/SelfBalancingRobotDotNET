@@ -1,8 +1,7 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 
-namespace SelfBalancingRobot.WebUI.Hubs
+namespace SelfBalancingRobot.WebUI.Hubs;
+
+public class ControlHub : Hub
 {
-    public class ControlHub : Hub
-    {
-    }
 }

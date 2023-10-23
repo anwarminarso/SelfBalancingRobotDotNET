@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
 using SelfBalancingRobot.WebUI.Configuration;
 using SelfBalancingRobot.WebUI.Hubs;
+using SelfBalancingRobot.WebUI.Models;
 using SelfBalancingRobot.WebUI.Resources;
 
 namespace SelfBalancingRobot.WebUI;
@@ -68,11 +69,12 @@ public class Startup
         });
         services.AddEmbeddedResources();
 
-        services.AddSingleton<SensorsHub>();
+        services.AddSingleton<IMUHub>();
         services.AddSingleton<ControlHub>();
+        services.AddSingleton<IMUContext>();
     }
 
-    public virtual void Configure(IApplicationBuilder app, IWebHostEnvironment env, AppSettings appSettings)
+    public virtual void Configure(IApplicationBuilder app, IWebHostEnvironment env, AppSettings appSettings, IMUContext imuContext)
     {
         app.UseForwardedHeaders(new ForwardedHeadersOptions()
         {
@@ -111,7 +113,7 @@ public class Startup
         app.UseHttpsRedirection();
         app.UseRouting();
         app.UseCors();
-
+        
         //app.UseSession();
 
         //app.UseAuthentication();
@@ -129,10 +131,18 @@ public class Startup
             {
                 options.Transports = HttpTransportType.WebSockets | HttpTransportType.LongPolling;
             });
-            endpoints.MapHub<Hubs.SensorsHub>("/ws/sensors", options =>
+            endpoints.MapHub<Hubs.IMUHub>("/ws/imu", options =>
             {
                 options.Transports = HttpTransportType.WebSockets | HttpTransportType.LongPolling;
             });
         });
+
+
+        #region Init IMU
+        {
+            imuContext.Init();
+            imuContext.StartMonitoring();
+        }
+        #endregion
     }
 }

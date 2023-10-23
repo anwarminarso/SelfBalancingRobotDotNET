@@ -1,12 +1,308 @@
 ﻿@page
 @model IndexModel
+@inject SelfBalancingRobot.WebUI.Models.IMUContext imuContext
 @{
     ViewData["code"] = "SYS";
     var mn = menuSettings.MenuList.Where(t => t.code == "SYS").FirstOrDefault();
     ViewData["Title"] = mn != null ? mn.description : "";
+    var histLst = imuContext.GetHistory();
+    var imuData = histLst.LastOrDefault();
 }
-
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+@section Head {
+    <link rel="stylesheet" src="/css/fa-light.css" />
+    <style type="text/css">
+        #cnv {
+            width: 100%;
+            height: auto;
+        }
+    </style>
+}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Orientation 3D</h4>
+                <p class="card-category">Orientation in euler angle 3D</p>
+            </div>
+            <div class="card-body">
+                <canvas id="cnv" style="min-height: 150px; max-height: 400px"></canvas>
+            </div>
+            <div class="card-footer">
+                <div class="stats">
+                    <i class="fal fa-history"></i> 
+                    Yaw: <span id="spYaw"></span>, 
+                    Pitch: <span id="spPitch"></span>, 
+                    Roll: <span id="spRoll"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Orientation Data</h4>
+                <p class="card-category">Euler angle</p>
+            </div>
+            <div class="card-body">
+                <div class="form-group row">
+                    <label for="tbYaw" class="form-label col-3">Yaw</label>
+                    <input type="text" id="tbYaw" class="form-control col-7" readonly />
+                </div>
+                <div class="form-group row">
+                    <label for="tbPitch" class="form-label col-3">Pitch</label>
+                    <input type="text" id="tbPitch" class="form-control col-7" readonly />
+                </div>
+                <div class="form-group row">
+                    <label for="tbRoll" class="form-label col-3">Roll</label>
+                    <input type="text" id="tbRoll" class="form-control col-7" readonly />
+                </div>
+            </div>
+            <div class="card-footer">
+            </div>
+        </div>
+    </div>
 </div>
+@section Scripts {
+
+    <script type="text/javascript" src="/js/signalr/signalr.min.js"></script>
+    <script type="text/javascript">
+        let currentData = @Html.Raw(Json.Serialize(imuData));
+        var obj3D = [];
+        var cube_center = null;
+        var dtContext = {};
+        let cvs = null;
+        let defaultStrokeStyle = 'rgba(0, 0, 0, 0.5)';
+        let defaultFillStyle = 'rgba(0, 150, 255, 0.4)';
+        function degToRad(degrees) {
+            var pi = Math.PI;
+            return degrees * (pi / 180);
+        }
+        var Vertex = function (x, y, z) {
+            this.x = parseFloat(x);
+            this.y = parseFloat(y);
+            this.z = parseFloat(z);
+        };
+
+        var Vertex2D = function (x, y) {
+            this.x = parseFloat(x);
+            this.y = parseFloat(y);
+        };
+        var Box = function (center, width, height, depth) {
+            var w = width / 2;
+            var h = height / 2;
+            var d = depth / 2;
+
+            this.vertices = [
+                new Vertex(center.x - w, center.y - d, center.z + h),
+                new Vertex(center.x - w, center.y - d, center.z - h),
+                new Vertex(center.x + w, center.y - d, center.z - h),
+                new Vertex(center.x + w, center.y - d, center.z + h),
+                new Vertex(center.x + w, center.y + d, center.z + h),
+                new Vertex(center.x + w, center.y + d, center.z - h),
+                new Vertex(center.x - w, center.y + d, center.z - h),
+                new Vertex(center.x - w, center.y + d, center.z + h)
+            ];
+            // Generate the faces
+            this.faces = [
+                [this.vertices[0], this.vertices[1], this.vertices[2], this.vertices[3]], // front
+                [this.vertices[3], this.vertices[2], this.vertices[5], this.vertices[4]], // right
+                [this.vertices[4], this.vertices[5], this.vertices[6], this.vertices[7]], // back
+                [this.vertices[7], this.vertices[6], this.vertices[1], this.vertices[0]], // left
+                [this.vertices[7], this.vertices[0], this.vertices[3], this.vertices[4]], // top
+                [this.vertices[1], this.vertices[6], this.vertices[5], this.vertices[2]] // bottom
+            ];
+            this.faceFillStyles = [];
+            this.faceStrokeStyles = [];
+        };
+        var Triangle = function (center, v2dp1, v2dp2, depth) {
+            var d = depth / 2;
+            var o = new Vertex2D((v2dp1.x + v2dp2.x) / 3, (v2dp1.y + v2dp2.y) / 3);
+            var p0 = new Vertex2D(center.x - o.x, center.z - o.y);
+            var p1 = new Vertex2D(center.x - o.x + v2dp1.x, center.z - o.y + v2dp1.y);
+            var p2 = new Vertex2D(center.x - o.x + v2dp2.x, center.z - o.y + v2dp2.y);
+            this.vertices = [
+                new Vertex(p0.x, center.y - d, p0.y),
+                new Vertex(p1.x, center.y - d, p1.y),
+                new Vertex(p2.x, center.y - d, p2.y),
+                new Vertex(p0.x, center.y + d, p0.y),
+                new Vertex(p1.x, center.y + d, p1.y),
+                new Vertex(p2.x, center.y + d, p2.y)
+            ];
+            // Generate the faces
+            this.faces = [
+                [this.vertices[0], this.vertices[1], this.vertices[2]], // top
+                [this.vertices[2], this.vertices[0], this.vertices[3], this.vertices[5]], // backward
+                [this.vertices[5], this.vertices[2], this.vertices[1], this.vertices[4]], // right
+                [this.vertices[4], this.vertices[5], this.vertices[3]], // bottom
+                [this.vertices[3], this.vertices[0], this.vertices[1], this.vertices[4]] // left
+            ];
+            this.faceFillStyles = [];
+            this.faceStrokeStyles = [];
+        };
+        function project(M) {
+            return new Vertex2D(M.x, M.z);
+        }
+
+        // Rotate a vertice
+        function rotate(M, center, theta, phi) {
+            // Rotation matrix coefficients
+            var ct = Math.cos(theta);
+            var st = Math.sin(theta);
+            var cp = Math.cos(phi);
+            var sp = Math.sin(phi);
+
+            // Rotation
+            var x = M.x - center.x;
+            var y = M.y - center.y;
+            var z = M.z - center.z;
+
+            M.x = ct * x - st * cp * y + st * sp * z + center.x;
+            M.y = st * x + ct * cp * y - ct * sp * z + center.y;
+            M.z = sp * y + cp * z + center.z;
+        }
+        function eulerRotate(vertices, yaw, pitch, roll) {
+            r_yaw = degToRad(yaw);
+            r_pitch = degToRad(pitch);
+            r_roll = degToRad(roll);
+            var cosa = Math.cos(r_yaw);
+            var sina = Math.sin(r_yaw);
+
+            var cosb = Math.cos(r_pitch);
+            var sinb = Math.sin(r_pitch);
+
+            var cosc = Math.cos(r_roll);
+            var sinc = Math.sin(r_roll);
+
+            var Axx = cosa * cosb;
+            var Axy = cosa * sinb * sinc - sina * cosc;
+            var Axz = cosa * sinb * cosc + sina * sinc;
+
+            var Ayx = sina * cosb;
+            var Ayy = sina * sinb * sinc + cosa * cosc;
+            var Ayz = sina * sinb * cosc - cosa * sinc;
+
+            var Azx = -sinb;
+            var Azy = cosb * sinc;
+            var Azz = cosb * cosc;
+
+            for (var i = 0; i < vertices.length; i++) {
+                var px = vertices[i].x;
+                var py = vertices[i].y;
+                var pz = vertices[i].z;
+
+                vertices[i].x = Axx * px + Axy * py + Axz * pz;
+                vertices[i].y = Ayx * px + Ayy * py + Ayz * pz;
+                vertices[i].z = Azx * px + Azy * py + Azz * pz;
+            }
+        }
+        function render(objects, ctx, dx, dy) {
+            // Clear the previous frame
+            ctx.clearRect(0, 0, 2 * dx, 2 * dy);
+
+            // For each object
+            for (var i = 0, n_obj = objects.length; i < n_obj; ++i) {
+                var customFill = false;
+                var customStroke = false;
+                if (objects[i].faceFillStyles && objects[i].faceFillStyles.length == objects[i].faces.length)
+                    customFill = true;
+                if (objects[i].faceStrokeStyles && objects[i].faceStrokeStyles.length == objects[i].faces.length)
+                    customStroke = true;
+                // For each face
+                for (var j = 0, n_faces = objects[i].faces.length; j < n_faces; ++j) {
+                    ctx.strokeStyle = customStroke ? objects[i].faceStrokeStyles[j] : defaultStrokeStyle;
+                    ctx.fillStyle = customFill ? objects[i].faceFillStyles[j] : defaultFillStyle;
+                    // Current face
+                    var face = objects[i].faces[j];
+
+                    // Draw the first vertex
+                    var P = project(face[0]);
+                    ctx.beginPath();
+                    ctx.moveTo(P.x + dx, -P.y + dy);
+
+                    // Draw the other vertices
+                    for (var k = 1, n_vertices = face.length; k < n_vertices; ++k) {
+                        P = project(face[k]);
+                        ctx.lineTo(P.x + dx, -P.y + dy);
+                    }
+
+                    // Close the path and draw the face
+                    ctx.closePath();
+                    ctx.stroke();
+                    ctx.fill();
+                }
+            }
+        }
+        function create3DObj() {
+            var board = new Box(cube_center, 160, 20, 80); 
+            board.faceFillStyles = ['#EA0', '#EA0', '#EA0', '#EA0', '#EA0', '#EA0'];
+            var neck = new Box(new Vertex(-100, 0, 0), 40, 5, 5);
+            neck.faceFillStyles = ['#8e44ad', '#8e44ad', '#8e44ad', '#8e44ad', '#8e44ad', '#8e44ad'];
+            var tp1 = new Vertex2D(40, 20);
+            var tp2 = new Vertex2D(40, -20);
+            var arrow = new Triangle(new Vertex(-135, 0, 0), tp1, tp2, 10);
+            arrow.faceFillStyles = ['#C25', '#C25', '#C25', '#C25', '#EA0C25' ];
+            eulerRotate(arrow.vertices, 0, 0, 90);
+
+            return [board, neck, arrow];
+        }
+        function updateAll(imuData) {
+            cvs.width = cvs.offsetWidth;
+            cvs.height = cvs.offsetHeight;
+            var dx = cvs.width / 2;
+            var dy = cvs.height / 2;
+
+            obj3D = create3DObj();
+            for (var i = 0; i < obj3D.length; i++) {
+                eulerRotate(obj3D[i].vertices, imuData.Data.ypr[0], imuData.Data.ypr[1], imuData.Data.ypr[2]);
+            }
+            render(obj3D, dtContext['Orientation'], dx, dy);
+
+            $("#tbYaw").val(imuData.Data.ypr[0]);
+            $("#tbPitch").val(imuData.Data.ypr[1]);
+            $("#tbRoll").val(imuData.Data.ypr[2]);
+
+            // $("#tbGyroX").val(imuData[0]);
+            // $("#tbGyroY").val(imuData[1]);
+            // $("#tbGyroZ").val(imuData[2]);
+
+            // $("#tbAccX").val(imuData[3]);
+            // $("#tbAccY").val(imuData[4]);
+            // $("#tbAccZ").val(imuData[5]);
+
+            // $("#tbMotor1").val(motorData[0]);
+            // $("#tbMotor2").val(motorData[1]);
+            // setTimeout(requestAll, 100);
+        }
+        $(function () {
+            Object.defineProperty(WebSocket, 'OPEN', {
+                value: 1,
+            });
+            cvs = document.getElementById('cnv');
+            cvs.width = cvs.offsetWidth;
+            cvs.height = cvs.offsetHeight;
+            var dx = cvs.width / 2;
+            var dy = cvs.height / 2;
+
+            // Objects style
+            var cvsContext = cvs.getContext('2d');
+            cvsContext.strokeStyle = defaultStrokeStyle;
+            cvsContext.fillStyle = defaultFillStyle;
+            cube_center = new Vertex(0, 0, 0);
+
+            obj3D = create3DObj();
+
+            // First render
+            render(obj3D, cvsContext, dx, dy);
+            dtContext['Orientation'] = cvsContext;
+
+            var connection = new signalR.HubConnectionBuilder().withUrl("/ws/imu").build();
+            connection.on("Update", function (result) {
+                updateAll(result);
+            });
+            connection.start().then(function () {
+            }).catch(function (err) {
+               return console.error(err.toString());
+            });
+        });
+    </script>
+}
