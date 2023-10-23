@@ -5,7 +5,7 @@
     <Nullable>disable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
-    <!--<DefineConstants>$(DefineConstants);FAKE_IMU</DefineConstants>-->
+    <DefineConstants>$(DefineConstants);FAKE_IMU</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>

@@ -111,8 +111,8 @@ public class DCM
     /// <summary>
     /// 
     /// </summary>
-    /// <param name="gyro">Gyro vector in radians</param>
-    /// <param name="acc">Accelero vector in </param>
+    /// <param name="gyro">Gyro vector in degree</param>
+    /// <param name="acc">Accelero vector in m/s2</param>
     public void Update(Vector3 gyro, Vector3 acc)
     {
         if (!isStarted)

@@ -69,9 +69,13 @@ public class Startup
         });
         services.AddEmbeddedResources();
 
+        services.AddSingleton<IMUContext>();
+        services.AddSingleton<ControlContext>();
+        services.AddSingleton<StabilizerContext>();
+        services.AddSingleton<MotorDriverContext>();
+
         services.AddSingleton<IMUHub>();
         services.AddSingleton<ControlHub>();
-        services.AddSingleton<IMUContext>();
     }
 
     public virtual void Configure(IApplicationBuilder app, IWebHostEnvironment env, AppSettings appSettings, IMUContext imuContext)
