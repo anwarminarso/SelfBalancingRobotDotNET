@@ -11,7 +11,9 @@ namespace SelfBalancingRobot.WebUI.Models;
 public class IMUContext
 {
     private readonly AppSettings appSettings;
+    private readonly CalibrationSettings calibSettings;
     private readonly IMUHub imuHub;
+    private readonly CalibrationHub calHub;
 
     public const int MaxHistoryLength = 30;
     private const int MaxHistoryFreq = 10;  // Freq Hz
@@ -19,7 +21,7 @@ public class IMUContext
     private Task monitoringTask;
     private CancellationTokenSource monitoringTaskToken;
     private DCM dcm = new DCM();
-    IIMU imu;
+    private IIMU imu = null;
 
     private List<DataHistory> dataHistList = new List<DataHistory>();
     public DataHistory[] GetHistory()
@@ -28,18 +30,43 @@ public class IMUContext
     }
     private I2cDevice device = null;
 
-    public IMUContext(AppSettings appSettings, IMUHub imuHub)
+    private Vector3 gyroOffsets = new Vector3();
+    private Vector3 accOffsets = new Vector3();
+    public IMUContext(AppSettings appSettings, CalibrationSettings calibSettings, IMUHub imuHub, CalibrationHub calHub)
     {
         this.appSettings = appSettings;
+        this.calibSettings = calibSettings;
         this.imuHub = imuHub;
+        this.calHub = calHub;
     }
 
     public Vector3 GetGyro()
+    {
+        Vector3 data = GetRawGyro();
+        data -= gyroOffsets;
+        return data;
+    }
+    public Vector3 GetAccel()
+    {
+        Vector3 data = GetRawAccel();
+        data -= accOffsets;
+        return data;
+    }
+
+    public Vector3 GetRawGyro()
     {
 #if FAKE_IMU
         return new Vector3(gyroLst[currentFakeIndex]);
 #else
         return imu.GetGyro();
+#endif
+    }
+    public Vector3 GetRawAccel()
+    {
+#if FAKE_IMU
+        return new Vector3(accLst[currentFakeIndex]);
+#else
+        return imu.GetAcc();
 #endif
     }
     public Vector3 GetYPR()
@@ -106,17 +133,41 @@ public class IMUContext
             var delay = Convert.ToInt32(1000 / MaxHistoryFreq);
             monitoringTask = new Task(() =>
             {
+                dcm.Reset();
+                accOffsets = calibSettings.AccelOffsets.ToVector3();
+                gyroOffsets = calibSettings.GyroOffsets.ToVector3();
                 while (!monitoringTaskToken.IsCancellationRequested)
                 {
                     //Utils.Delay(delay, false);
                     monitoringTaskToken.Token.WaitHandle.WaitOne(delay);
-                    var data = UpdateIMU();
+
+#if FAKE_IMU
+                    currentFakeIndex++;
+                    if (currentFakeIndex >= accLst.Count)
+                        currentFakeIndex = 0;
+#endif
+                    var rawAcc = GetRawAccel();
+                    var rawGyro = GetRawGyro();
+                    var acc = rawAcc - accOffsets;
+                    var gyro = rawGyro - gyroOffsets;
+                    var data = UpdateIMU(gyro, acc);
                     imuHub.SendUpdate(data);
-                    //_OnDiagUpdated?.Invoke(this);
+                    calHub.SendRawAcc(rawAcc);
+                    calHub.SendRawGyro(rawGyro);
                 }
             }, monitoringTaskToken.Token);
             monitoringTask.Start();
         }
+    }
+
+
+    public void HardwareCalibrate()
+    {
+        this.StopMonitoring();
+#if !FAKE_IMU
+        imu.HardwareCalibrate();
+#endif
+        this.StartMonitoring();
     }
 
     public void StopMonitoring()
@@ -138,21 +189,9 @@ public class IMUContext
         }
     }
 
-    private DataHistory UpdateIMU()
+    private DataHistory UpdateIMU(Vector3 gyro, Vector3 acc)
     {
-#if FAKE_IMU
-        currentFakeIndex++;
-        if (currentFakeIndex >= accLst.Count)
-            currentFakeIndex = 0;
-        var acc = new Vector3(accLst[currentFakeIndex]);
-        var gyro = new Vector3(gyroLst[currentFakeIndex]);
         var time = DateTime.Now;
-#else
-        var acc = imu.GetAcc();
-        var gyro = imu.GetGyro();
-        var time = DateTime.Now;
-#endif
-
         dcm.Update(gyro, acc);
         return UpdateHistory(time, gyro, acc, dcm.GetYPR());
     }
@@ -177,9 +216,12 @@ public class IMUContext
 
 
 #if FAKE_IMU
+    // for development purpose (run app without IMU)
+
     private List<float[]> accLst = new List<float[]>();
     private List<float[]> gyroLst = new List<float[]>();
     private int currentFakeIndex = -1;
+
     private void LoadFake()
     {
         accLst.Add(new float[] { 0.49561745f, 1.8148696f, -9.854886f }); gyroLst.Add(new float[] { -2.7618408f, 0.9384155f, 0.74768066f });

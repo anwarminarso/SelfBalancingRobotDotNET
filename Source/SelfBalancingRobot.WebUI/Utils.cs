@@ -2,8 +2,12 @@
 
 namespace SelfBalancingRobot.WebUI;
 
-public class Utils
+public static class Utils
 {
+    public const string ConfigName_AppSettings = "AppSettings";
+    public const string ConfigName_MenuSettings = "Menu";
+    public const string ConfigName_CalibrationSettings = "CalibrationSettings";
+
     private const long TicksPerSecond = TimeSpan.TicksPerSecond;
     private const long TicksPerMillisecond = TimeSpan.TicksPerMillisecond;
     private const long TicksPerMicrosecond = TimeSpan.TicksPerMillisecond / 1000;

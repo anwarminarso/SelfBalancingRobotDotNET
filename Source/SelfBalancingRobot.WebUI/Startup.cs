@@ -8,6 +8,7 @@ using SelfBalancingRobot.WebUI.Configuration;
 using SelfBalancingRobot.WebUI.Hubs;
 using SelfBalancingRobot.WebUI.Models;
 using SelfBalancingRobot.WebUI.Resources;
+using SelfBalancingRobot.WebUI.Extensions;
 
 namespace SelfBalancingRobot.WebUI;
 
@@ -22,10 +23,15 @@ public class Startup
     {
         var appSettings = new AppSettings();
         var menuSettings = new MenuSettings();
-        Configuration.Bind("AppSettings", appSettings);
-        Configuration.Bind("Menu", menuSettings);
+        var calibrationSettings = new CalibrationSettings();
+
+        Configuration.Bind(Utils.ConfigName_AppSettings, appSettings);
+        Configuration.Bind(Utils.ConfigName_MenuSettings, menuSettings);
+        Configuration.Bind(Utils.ConfigName_CalibrationSettings, calibrationSettings);
+
         services.AddSingleton(appSettings);
         services.AddSingleton(menuSettings);
+        services.AddSingleton(calibrationSettings);
 
         #region Compression
         services.Configure<GzipCompressionProviderOptions>(options =>
@@ -69,12 +75,15 @@ public class Startup
         });
         services.AddEmbeddedResources();
 
+        services.AddSingleton<WritableConfiguration>();
+
         services.AddSingleton<IMUContext>();
         services.AddSingleton<ControlContext>();
         services.AddSingleton<StabilizerContext>();
         services.AddSingleton<MotorDriverContext>();
 
         services.AddSingleton<IMUHub>();
+        services.AddSingleton<CalibrationHub>();
         services.AddSingleton<ControlHub>();
     }
 
@@ -136,6 +145,10 @@ public class Startup
                 options.Transports = HttpTransportType.WebSockets | HttpTransportType.LongPolling;
             });
             endpoints.MapHub<Hubs.IMUHub>("/ws/imu", options =>
+            {
+                options.Transports = HttpTransportType.WebSockets | HttpTransportType.LongPolling;
+            });
+            endpoints.MapHub<Hubs.CalibrationHub>("/ws/calibration", options =>
             {
                 options.Transports = HttpTransportType.WebSockets | HttpTransportType.LongPolling;
             });

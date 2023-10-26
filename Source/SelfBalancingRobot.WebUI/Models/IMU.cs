@@ -18,6 +18,8 @@ public interface IIMU
 {
     Vector3 GetAcc();
     Vector3 GetGyro();
+
+    void HardwareCalibrate();
 }
 
 public abstract class IMU<T> : IIMU
@@ -34,6 +36,8 @@ public abstract class IMU<T> : IIMU
     }
     public abstract Vector3 GetAcc();
     public abstract Vector3 GetGyro();
+
+    public abstract void HardwareCalibrate();
 }
 
 public class IMU_MPU6886 : IMU<Mpu6886AccelerometerGyroscope>
@@ -53,6 +57,11 @@ public class IMU_MPU6886 : IMU<Mpu6886AccelerometerGyroscope>
     public override Vector3 GetGyro()
     {
         return imu.GetGyroscope();
+    }
+
+    public override void HardwareCalibrate()
+    {
+        this.imu.Calibrate(100);
     }
 }
 
@@ -74,6 +83,10 @@ public class IMU_MPU6050 : IMU<Mpu6050>
     {
         return imu.GetGyroscopeReading();
     }
+    public override void HardwareCalibrate()
+    {
+        this.imu.CalibrateGyroscopeAccelerometer();
+    }
 }
 
 public class IMU_MPU6500 : IMU<Mpu6500>
@@ -94,6 +107,10 @@ public class IMU_MPU6500 : IMU<Mpu6500>
     {
         return imu.GetGyroscopeReading();
     }
+    public override void HardwareCalibrate()
+    {
+        this.imu.CalibrateGyroscopeAccelerometer();
+    }
 }
 
 public class IMU_MPU9250 : IMU<Mpu9250>
@@ -113,6 +130,10 @@ public class IMU_MPU9250 : IMU<Mpu9250>
     public override Vector3 GetGyro()
     {
         return imu.GetGyroscopeReading();
+    }
+    public override void HardwareCalibrate()
+    {
+        this.imu.CalibrateGyroscopeAccelerometer();
     }
 }
 

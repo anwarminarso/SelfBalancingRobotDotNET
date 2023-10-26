@@ -13,6 +13,29 @@ String.format = function () {
 
     return s;
 }
+function showErrorDialog(message, fun, options) {
+    var opt = {
+        title: "<i class='fal fa-info text-danger mr-2'></i> Error",
+        message: `<span class="ml-4 fa-2x">${message}</span>`,
+        centerVertical: true,
+        backdrop: true,
+        swapButtonOrder: false,
+        buttons: {
+            ok: {
+                label: 'Ok',
+                className: 'btn-primary'
+            }
+        },
+        className: "modal-alert",
+        closeButton: false,
+        callback: fun
+    };
+    if (options)
+        $.extend(opt, options);
+    a2n.playSound('/media/sound', 'voice_off');
+    bootbox.alert(opt);
+}
+
 $(function () {
     $('#main-panel').slimscroll({
         alwaysVisible: true,

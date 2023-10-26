@@ -1,0 +1,677 @@
+﻿@page
+@model SelfBalancingRobot.WebUI.Pages.CalibrationModel
+@{
+    ViewData["code"] = "CALIB";
+    var mn = menuSettings.MenuList.Where(t => t.code == "CALIB").FirstOrDefault();
+    ViewData["Title"] = mn?.description ?? "Calibration";
+}
+@section Head {
+    <link href="/js/bootstrap-slider/bootstrap-slider.min.css" rel="stylesheet" />
+    <style type="text/css">
+        .nav-tabs .nav-item .nav-link {
+            /* background-color: #0080FF;
+            color: #FFF; */
+        }
+        .nav-tabs .nav-item .nav-link.active {
+            background-color: #0080FF;
+            color: #FFF;
+        }
+        .nav-tabs .nav-item .nav-link.active i {
+            color: #FFF !important;
+        }
+        /* .tab-content {
+            border: 1px solid #dee2e6;
+            border-top: transparent;
+            padding: 15px;
+        }
+        .tab-content .tab-pane {
+            background-color: #FFF;
+            color: #0080FF;
+            min-height: 200px;
+            height: auto;
+        } */
+    </style>
+}
+@Html.AntiForgeryToken();
+<section class="mb-4" id="mainSection">
+    <div class="card tab-card">
+        <div class="card-header tab-card-header">
+            <ul class="nav nav-tabs nav-fill card-header-tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link active"
+                        id="ex1-tab-1"
+                        data-toggle="tab"
+                        href="#ex1-tabs-1"
+                        role="tab"
+                        aria-controls="ex1-tabs-1"
+                        aria-selected="true"><i class="fal fa-sliders-h text-primary mr-2"></i>PID</a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link"
+                        id="ex1-tab-2"
+                        data-toggle="tab"
+                        href="#ex1-tabs-2"
+                        role="tab"
+                        aria-controls="ex1-tabs-2"
+                       aria-selected="false"><i class="fal fa-solar-system text-info mr-2"></i>Gyroscope</a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link"
+                        id="ex1-tab-3"
+                        data-toggle="tab"
+                        href="#ex1-tabs-3"
+                        role="tab"
+                        aria-controls="ex1-tabs-3"
+                        aria-selected="false"><i class="fal fa-scrubber text-warning mr-2"></i>Accelerometer</a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link"
+                       id="ex1-tab-4"
+                       data-toggle="tab"
+                       href="#ex1-tabs-4"
+                       role="tab"
+                       aria-controls="ex1-tabs-4"
+                       aria-selected="false"><i class="fal fa-scrubber text-danger mr-2"></i>Hardware Calibration</a>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body">
+            <div class="tab-content" id="ex1-content">
+                <div class="tab-pane fade show active"
+                     id="ex1-tabs-1"
+                     role="tabpanel"
+                     aria-labelledby="ex1-tab-1">
+                    <form>
+                        <div class="row">
+                            <div class="col-sm-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h3 class="card-title">Yaw</h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="form-group">
+                                            <label for="yawP" class="form-label mr-5">P</label>
+                                            <input type="text" id="yawP" class="form-control" style="width: 100%" data-slider-value="@Model.YawPID.P" />
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="yawI" class="form-label mr-5">I</label>
+                                            <input type="text" id="yawI" class="form-control" style="width: 100%" data-slider-value="@Model.YawPID.I" />
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="yawD" class="form-label mr-5">D</label>
+                                            <input type="text" id="yawD" class="form-control" style="width: 100%" data-slider-value="@Model.YawPID.D" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h3 class="card-title">Pitch</h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="form-group">
+                                            <label for="pitchP" class="form-label mr-5">P</label>
+                                            <input type="text" id="pitchP" class="form-control" style="width: 100%" data-slider-value="@Model.PitchPID.P" />
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="pitchI" class="form-label mr-5">I</label>
+                                            <input type="text" id="pitchI" class="form-control" style="width: 100%" data-slider-value="@Model.PitchPID.I" />
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="pitchD" class="form-label mr-5">D</label>
+                                            <input type="text" id="pitchD" class="form-control" style="width: 100%" data-slider-value="@Model.PitchPID.D" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h3 class="card-title">Angle</h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="form-group">
+                                            <label for="angleP" class="form-label mr-5">P</label>
+                                            <input type="text" id="angleP" class="form-control" style="width: 100%" data-slider-value="@Model.AnglePID.P" />
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="angleI" class="form-label mr-5">I</label>
+                                            <input type="text" id="angleI" class="form-control" style="width: 100%" data-slider-value="@Model.AnglePID.I" />
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="angleD" class="form-label mr-5">D</label>
+                                            <input type="text" id="angleD" class="form-control" style="width: 100%" data-slider-value="@Model.AnglePID.D" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-12 text-right">
+                                <button type="button" class="btn btn-success" onclick="SavePID()" style="width: 120px"><i class="fal fa-save mr-2"></i> Save</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="tab-pane fade"
+                     id="ex1-tabs-2"
+                     role="tabpanel"
+                     aria-labelledby="ex1-tab-2">
+                    <form>
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h3 class="card-title">Offset</h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="form-group">
+                                            <label for="gyroOffsetX" class="form-label">X</label>
+                                            <input type="text" id="gyroOffsetX" class="form-control" value="@Model.GyroOffsets.X" readonly />
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="gyroOffsetY" class="form-label">Y</label>
+                                            <input type="text" id="gyroOffsetY" class="form-control" value="@Model.GyroOffsets.Y" readonly />
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="gyroOffsetZ" class="form-label">Z</label>
+                                            <input type="text" id="gyroOffsetZ" class="form-control" value="@Model.GyroOffsets.Z" readonly />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h3 class="card-title">Runtime Calibration</h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="form-group">
+                                            <label for="gyroCount" class="form-label">Total data</label>
+                                            <input type="text" id="gyroCount" class="form-control" readonly />
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="gyroTempOffsetX" class="form-label">X</label>
+                                            <input type="text" id="gyroTempOffsetX" class="form-control" readonly />
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="gyroTempOffsetY" class="form-label">Y</label>
+                                            <input type="text" id="gyroTempOffsetY" class="form-control" readonly />
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="gyroTempOffsetZ" class="form-label">Z</label>
+                                            <input type="text" id="gyroTempOffsetZ" class="form-control" readonly />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-12 text-right">
+                                <button id="btnSaveGyroOffset" type="button" class="btn btn-success d-none" onclick="SaveGyroOffset()" style="width: 120px"><i class="fal fa-save mr-2"></i> Save</button>
+                                <button id="btnCalibrateGyro" type="button" class="btn btn-primary" style="width: 120px"><i class="fal fa-heart-rate mr-2"></i> Calibrate</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="tab-pane fade"
+                     id="ex1-tabs-3"
+                     role="tabpanel"
+                     aria-labelledby="ex1-tab-3">
+                    <form>
+                        <div class="row">
+                            <div class="col-sm-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h3 class="card-title">Offset</h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="form-group">
+                                            <label for="accOffsetX" class="form-label">X</label>
+                                            <input type="text" id="accOffsetX" class="form-control" value="@Model.AccelOffset.X" readonly />
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="accOffsetY" class="form-label">Y</label>
+                                            <input type="text" id="accOffsetY" class="form-control" value="@Model.AccelOffset.Y" readonly />
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="accOffsetZ" class="form-label">Z</label>
+                                            <input type="text" id="accOffsetZ" class="form-control" value="@Model.AccelOffset.Z" readonly />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-8">
+                                <div class="card">
+                                    <h3 class="card-header">Runtime Calibration</h3>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col">
+                                                <div class="form-group">
+                                                    <label for="accCount" class="form-label">Total data</label>
+                                                    <input type="text" id="accCount" class="form-control" readonly />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-sm-4">
+                                                <div class="card">
+                                                    <div class="card-header">
+                                                        <h4 class="card-title">Minimum</h4>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <div class="form-group">
+                                                            <label for="accMinX" class="form-label">X</label>
+                                                            <input type="text" id="accMinX" class="form-control form-control-sm" readonly />
+                                                        </div>
+                                                        <div class="form-group">
+                                                            <label for="accMinY" class="form-label">Y</label>
+                                                            <input type="text" id="accMinY" class="form-control form-control-sm" readonly />
+                                                        </div>
+                                                        <div class="form-group">
+                                                            <label for="accMinZ" class="form-label">Z</label>
+                                                            <input type="text" id="accMinZ" class="form-control form-control-sm" readonly />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-sm-4">
+                                                <div class="card">
+                                                    <div class="card-header">
+                                                        <h4 class="card-title">Maximum</h4>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <div class="form-group">
+                                                            <label for="accMaxX" class="form-label">X</label>
+                                                            <input type="text" id="accMaxX" class="form-control form-control-sm" readonly />
+                                                        </div>
+                                                        <div class="form-group">
+                                                            <label for="accMaxY" class="form-label">Y</label>
+                                                            <input type="text" id="accMaxY" class="form-control form-control-sm" readonly />
+                                                        </div>
+                                                        <div class="form-group">
+                                                            <label for="accMaxZ" class="form-label">Z</label>
+                                                            <input type="text" id="accMaxZ" class="form-control form-control-sm" readonly />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-sm-4">
+                                                <div class="card">
+                                                    <div class="card-header">
+                                                        <h4 class="card-title">Offset</h4>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <div class="form-group">
+                                                            <label for="accTempOffsetX" class="form-label">X</label>
+                                                            <input type="text" class="form-control form-control-sm" id="accTempOffsetX" readonly />
+                                                        </div>
+                                                        <div class="form-group">
+                                                            <label for="accTempOffsetY" class="form-label">Y</label>
+                                                            <input type="text" class="form-control form-control-sm" id="accTempOffsetY" readonly />
+                                                        </div>
+                                                        <div class="form-group">
+                                                            <label for="accTempOffsetZ" class="form-label">Z</label>
+                                                            <input type="text" class="form-control form-control-sm" id="accTempOffsetZ" readonly />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-12 text-right">
+                                <button id="btnSaveAccOffset" type="button" class="btn btn-success d-none" onclick="SaveAccOffset()" style="width: 120px"><i class="fal fa-save mr-2"></i> Save</button>
+                                <button id="btnPauseAcc" type="button" class="btn btn-dark d-none" style="width: 120px"><i class="fal fa-pause mr-2"></i>Pause</button>
+                                <button id="btnCalibrateAcc" type="button" class="btn btn-primary" style="width: 120px"><i class="fal fa-heart-rate mr-2"></i> Calibrate</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="tab-pane fade"
+                     id="ex1-tabs-4"
+                     role="tabpanel"
+                     aria-labelledby="ex1-tab-4">
+                    <form>
+                        <div class="row">
+                            <div class="col">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h3 class="card-title">Hardware Calibration</h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <button type="button" id="btnHardwareCalibration" onclick="HardwareCalibration()" class="btn btn-danger btn-block"><i class="fal fa-heart-rate mr-2"></i> Calibrate</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                 </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+@section Scripts {
+    <script type="text/javascript" src="/js/bootstrap-slider/bootstrap-slider.min.js"></script>
+
+    <script type="text/javascript">
+        var sliderYawP, sliderYawI, sliderYawD;
+        var sliderPitchP, sliderPitchI, sliderPitchD;
+        var sliderAngleP, sliderAngleI, sliderAngleD;
+
+        var connection;
+        var gyroCount = 0;
+        var gyroSum = [];
+        var gyroAvg = [];
+        var accCount = 0;
+        var accMin = [];
+        var accMax = [];
+        var accOffset = [];
+
+        let $gyroCount = $("#gyroCount");
+        let $gyroTempOffsetX = $("#gyroTempOffsetX");
+        let $gyroTempOffsetY = $("#gyroTempOffsetY");
+        let $gyroTempOffsetZ = $("#gyroTempOffsetZ");
+
+        let $accCount = $("#accCount");
+        let $accMinX = $("#accMinX");
+        let $accMinY = $("#accMinY");
+        let $accMinZ = $("#accMinZ");
+        let $accMaxX = $("#accMaxX");
+        let $accMaxY = $("#accMaxY");
+        let $accMaxZ = $("#accMaxZ");
+        let $accTempOffsetX = $("#accTempOffsetX");
+        let $accTempOffsetY = $("#accTempOffsetY");
+        let $accTempOffsetZ = $("#accTempOffsetZ");
+
+        function StartCalibrateGyro() {
+            let $this = $("#btnCalibrateGyro");
+            a2n.showConfirm(function (result) {
+                if (result) {
+                    gyroCount = 0;
+                    gyroSum = [0.0, 0.0, 0.0];
+                    gyroAvg = [0.0, 0.0, 0.0];
+                    $gyroCount.val(0);
+                    $gyroTempOffsetX.val(0.0);
+                    $gyroTempOffsetY.val(0.0);
+                    $gyroTempOffsetZ.val(0.0);
+                    $("#btnSaveGyroOffset").addClass("d-none");
+                    connection.invoke("SubscribeGyro").catch(function (err) {
+                        return console.error(err.toString());
+                    });
+                    $this.html('<i class="fal fa-stop mr-2"></i> Stop');
+                    $this.off("click");
+                    $this.removeClass("btn-primary");
+                    $this.addClass("btn-danger");
+                    $this.click(StopCalibrateGyro);
+                }
+            }, {
+                title: `<i class='fal fa-times-circle text-danger mr-2'></i> Are you sure want to calibrate gyro?`,
+                message: 'Please make sure the robot is not moving and the robot is placed on a flat surface.'
+            });
+        }
+        function StopCalibrateGyro() {
+            let $this = $("#btnCalibrateGyro");
+            connection.invoke("UnsubscribeGyro").catch(function (err) {
+                return console.error(err.toString());
+            });
+            $this.html('<i class="fal fa-heart-rate mr-2"></i> Calibrate');
+            $this.removeClass("btn-danger");
+            $this.addClass("btn-primary");
+            $this.off("click");
+            $this.click(StartCalibrateGyro);
+            $("#btnSaveGyroOffset").removeClass("d-none");
+        }
+        function StartCalibrateAcc() {
+            let $this = $("#btnCalibrateAcc");
+            a2n.showConfirm(function (result) {
+                if (result) {
+                    accCount = 0;
+                    accMax = [0.0, 0.0, 0.0];
+                    accMin = [0.0, 0.0, 0.0];
+                    accOffset = [0.0, 0.0, 0.0];
+                    $accCount.val(0);
+                    $accTempOffsetX.val(0.0);
+                    $accTempOffsetY.val(0.0);
+                    $accTempOffsetZ.val(0.0);
+                    $("#btnPauseAcc").removeClass("d-none");
+                    $("#btnSaveAccOffset").addClass("d-none");
+                    connection.invoke("SubscribeAcc").catch(function (err) {
+                        return console.error(err.toString());
+                    });
+                    $this.html('<i class="fal fa-stop mr-2"></i> Stop');
+                    $this.off("click");
+                    $this.removeClass("btn-primary");
+                    $this.addClass("btn-danger");
+                    $this.click(StopCalibrateAcc);
+                }
+            }, {
+                title: `<i class='fal fa-times-circle text-danger mr-2'></i> Are you sure want to calibrate gyro?`,
+                message: 'Please make sure the robot is not moving and the robot is placed on a flat surface.'
+            });
+        }
+        function PauseCalibrateAcc() {
+            let $this = $("#btnPauseAcc");
+            if ($this.text().trim() == 'Pause') {
+                $this.html('<i class="fal fa-play mr-2"></i> Resume');
+                $this.removeClass("btn-dark");
+                $this.addClass("btn-warning");
+                connection.invoke("UnsubscribeAcc").catch(function (err) {
+                    return console.error(err.toString());
+                });
+            }
+            else {
+                $this.html('<i class="fal fa-pause mr-2"></i> Pause');
+                $this.removeClass("btn-warning");
+                $this.addClass("btn-dark");
+                connection.invoke("SubscribeAcc").catch(function (err) {
+                    return console.error(err.toString());
+                });
+            }
+        }
+        function StopCalibrateAcc() {
+            let $this = $("#btnCalibrateAcc");
+            connection.invoke("UnsubscribeAcc").catch(function (err) {
+                return console.error(err.toString());
+            });
+            $this.html('<i class="fal fa-heart-rate mr-2"></i> Calibrate');
+            $this.removeClass("btn-danger");
+            $this.addClass("btn-primary");
+            $this.off("click");
+            $this.click(StartCalibrateAcc);
+            $("#btnPauseAcc").addClass("d-none");
+            $("#btnPauseAcc").removeClass("btn-warning");
+            $("#btnPauseAcc").addClass("btn-dark");
+            $("#btnPauseAcc").html('<i class="fal fa-pause mr-2"></i> Pause');
+            $("#btnSaveAccOffset").removeClass("d-none");
+        }
+        function SavePID() {
+            a2n.showConfirm(function (result) {
+                if (result) {
+                    let data = {
+                        Yaw: { P: sliderYawP.getValue(), I: sliderYawI.getValue(), D: sliderYawD.getValue() },
+                        Pitch: { P: sliderPitchP.getValue(), I: sliderPitchI.getValue(), D: sliderPitchD.getValue() },
+                        Angle: { P: sliderAngleP.getValue(), I: sliderAngleI.getValue(), D: sliderAngleD.getValue() }
+                    };
+                    a2n.submitAjaxPost('/Calibration?handler=SavePID', 
+                        {
+                            jsonPID: JSON.stringify(data)
+                        },
+                        function (data, status, xhr) {
+                            sliderYawP.setValue(data.Yaw.P); sliderPitchP.setValue(data.Pitch.P); sliderAngleP.setValue(data.Angle.P);
+                            sliderYawI.setValue(data.Yaw.I); sliderPitchI.setValue(data.Pitch.I); sliderAngleI.setValue(data.Angle.I);
+                            sliderYawD.setValue(data.Yaw.D); sliderPitchD.setValue(data.Pitch.D); sliderAngleD.setValue(data.Angle.D);
+                            a2n.showNotificationDialog("PID saved successfully");
+                        },
+                        function (req, status, error) {
+                            showErrorDialog(req.responseText);
+                        }
+                    );
+                }
+            }, {
+                title: `<i class='fal fa-times-circle text-danger mr-2'></i> Are you sure want to save PID settings?`,
+                message: 'Attention changing the PID configuration will make the robot unstable.<br /> Progressively changing the PID will make it easier to find a suitable value so that the robot can have stable and smooth movements'
+            });
+        }
+        function SaveGyroOffset() {
+            a2n.showConfirm(function (result) {
+                if (result) {
+                    let data = { Offsets: gyroAvg };
+                    a2n.submitAjaxPost('/Calibration?handler=SaveGyroOffset',
+                        {
+                            jsonOffsets: JSON.stringify(data)
+                        },
+                        function (data, status, xhr) {
+                            $("#gyroOffsetX").val(data.Offsets[0]);
+                            $("#gyroOffsetY").val(data.Offsets[1]);
+                            $("#gyroOffsetZ").val(data.Offsets[2]);
+                            a2n.showNotificationDialog("Gyroscope calibration saved successfully");
+                        },
+                        function (req, status, error) {
+                            showErrorDialog(req.responseText);
+                        }
+                    );
+                }
+            }, {
+                title: `<i class='fal fa-times-circle text-danger mr-2'></i> Are you sure want to save gyro offsets?`,
+                message: '<span><strong>Warning:</strong> This action cannot be undone!</span>'
+            });
+        }
+        function SaveAccOffset() {
+            a2n.showConfirm(function (result) {
+                if (result) {
+                    let data = { Offsets: accOffset };
+                    a2n.submitAjaxPost('/Calibration?handler=SaveAccOffset',
+                        {
+                            jsonOffsets: JSON.stringify(data)
+                        },
+                        function (data, status, xhr) {
+                            $("#accOffsetX").val(data.Offsets[0]);
+                            $("#accOffsetY").val(data.Offsets[1]);
+                            $("#accOffsetZ").val(data.Offsets[2]);
+                            a2n.showNotificationDialog("Accelerometer calibration saved successfully");
+                        },
+                        function (req, status, error) {
+                            showErrorDialog(req.responseText);
+                        }
+                    );
+                }
+            }, {
+                title: `<i class='fal fa-times-circle text-danger mr-2'></i> Are you sure want to save acc offsets?`,
+                message: '<span><strong>Warning:</strong> This action cannot be undone!</span>'
+            });
+        }
+        function HardwareCalibration() {
+            a2n.showConfirm(function (result) {
+                if (result) {
+                    let data = { Offsets: gyroAvg };
+                    a2n.submitAjaxPost('/Calibration?handler=HardwareCalibration', null,
+                        function (data, status, xhr) {
+                            a2n.showNotificationDialog("IMU internal calibration successfully");
+                        },
+                        function (req, status, error) {
+                            showErrorDialog(req.responseText);
+                        }
+                    );
+                }
+            }, {
+                title: `<i class='fal fa-times-circle text-danger mr-2'></i> Are you sure ?`,
+                message: '<span><strong>Warning:</strong> This action cannot be undone!</span>'
+            });
+        }
+        $(function () {
+            sliderYawP = new Slider('#yawP', {
+                step: 0.001,
+                min: 0,
+                max: 30
+            });
+            sliderYawI = new Slider('#yawI', {
+                step: 0.001,
+                min: 0,
+                max: 30
+            });
+            sliderYawD = new Slider('#yawD', {
+                step: 0.001,
+                min: 0,
+                max: 30
+            });
+            sliderPitchP = new Slider('#pitchP', {
+                step: 0.001,
+                min: 0,
+                max: 30
+            });
+            sliderPitchI = new Slider('#pitchI', {
+                step: 0.001,
+                min: 0,
+                max: 30
+            });
+            sliderPitchD = new Slider('#pitchD', {
+                step: 0.001,
+                min: 0,
+                max: 30
+            });
+            sliderAngleP = new Slider('#angleP', {
+                step: 0.001,
+                min: 0,
+                max: 30
+            });
+            sliderAngleI = new Slider('#angleI', {
+                step: 0.001,
+                min: 0,
+                max: 30
+            });
+            sliderAngleD = new Slider('#angleD', {
+                step: 0.001,
+                min: 0,
+                max: 30
+            });
+
+            connection = new signalR.HubConnectionBuilder().withUrl("/ws/calibration").build();
+            connection.on("UpdateGyro", function (result) {
+                gyroCount++;
+                for (var i = 0; i < 3; i++) {
+                    gyroSum[i] += result[i];
+                    gyroAvg[i] = gyroSum[i] / gyroCount;
+                }
+                $gyroCount.val(gyroCount);
+                $gyroTempOffsetX.val(gyroAvg[0]);
+                $gyroTempOffsetY.val(gyroAvg[1]);
+                $gyroTempOffsetZ.val(gyroAvg[2]);
+            });
+            connection.on("UpdateAcc", function (result) {
+                accCount++;
+                for (var i = 0; i < 3; i++) {
+                    if (accMin[i] > result[i])
+                        accMin[i] = result[i];
+                    if (accMax[i] < result[i])
+                        accMax[i] = result[i];
+                    accOffset[i] = (accMax[i] - accMin[i]) / 2.0;
+                }
+                $accCount.val(accCount);
+                $accMinX.val(accMin[0]);
+                $accMinY.val(accMin[1]);
+                $accMinZ.val(accMin[2])
+                $accMaxX.val(accMax[0]);
+                $accMaxY.val(accMax[1]);
+                $accMaxZ.val(accMax[2])
+                $accTempOffsetX.val(accOffset[0]);
+                $accTempOffsetY.val(accOffset[1]);
+                $accTempOffsetZ.val(accOffset[2]);
+            });
+            connection.start().then(function () {
+                $("#btnCalibrateGyro").click(StartCalibrateGyro);
+                $("#btnCalibrateAcc").click(StartCalibrateAcc);
+                $("#btnPauseAcc").click(PauseCalibrateAcc);
+            }).catch(function (err) {
+                return console.error(err.toString());
+            });
+        });
+    </script>
+}

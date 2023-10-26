@@ -5,10 +5,12 @@
     <Nullable>disable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
-    <DefineConstants>$(DefineConstants);FAKE_IMU</DefineConstants>
+    <!--<DefineConstants>$(DefineConstants);FAKE_IMU</DefineConstants>-->
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Remove="appsettings - Copy.Development.json" />
+    <Content Remove="appsettings - Copy.json" />
     <Content Remove="Pages\Shared\_LoginPartial.cshtml" />
   </ItemGroup>
 
