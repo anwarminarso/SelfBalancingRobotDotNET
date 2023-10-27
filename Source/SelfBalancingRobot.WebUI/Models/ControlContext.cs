@@ -7,8 +7,8 @@ public class ControlContext
     private readonly IMUContext imuContext;
     
     public bool ArmDisarm { get; private set; }
-    public float ControlX { get; private set; }
-    public float ControlY { get; private set; }
+    public float ControlX { get; set; }
+    public float ControlY { get; set; }
 
     public ControlContext(IMUContext imuContext)
     {

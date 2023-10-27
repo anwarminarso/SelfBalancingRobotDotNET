@@ -79,8 +79,8 @@ public class Startup
 
         services.AddSingleton<IMUContext>();
         services.AddSingleton<ControlContext>();
-        services.AddSingleton<StabilizerContext>();
-        services.AddSingleton<MotorDriverContext>();
+        //services.AddSingleton<MotorContext>();
+        //services.AddSingleton<StabilizerContext>();
 
         services.AddSingleton<IMUHub>();
         services.AddSingleton<CalibrationHub>();

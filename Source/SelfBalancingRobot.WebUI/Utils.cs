@@ -71,4 +71,22 @@ public static class Utils
         var time = TimeSpan.FromTicks(milliseconds * TicksPerMillisecond);
         InternalDelay(time, allowThreadYield);
     }
+
+
+    public static T constrain<T>(T value, T min, T max) where T : IComparable<T>
+    {
+        if (value.CompareTo(min) < 0)
+            return min;
+        if (value.CompareTo(max) > 0)
+            return max;
+        return value;
+    }
+    public static float map(float value, float fromLow, float fromHigh, float toLow, float toHigh)
+    {
+        return (value - fromLow) * (toHigh - toLow) / (fromHigh - fromLow) + toLow;
+    }
+    //public static double map(double value, double fromLow, double fromHigh, double toLow, double toHigh)
+    //{
+    //    return (value - fromLow) * (toHigh - toLow) / (fromHigh - fromLow) + toLow;
+    //}
 }
