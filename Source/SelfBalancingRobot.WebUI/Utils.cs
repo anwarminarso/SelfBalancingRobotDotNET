@@ -5,6 +5,7 @@ namespace SelfBalancingRobot.WebUI;
 public static class Utils
 {
     public const string ConfigName_AppSettings = "AppSettings";
+    public const string ConfigName_DeviceSettings = "DeviceSettings";
     public const string ConfigName_MenuSettings = "Menu";
     public const string ConfigName_CalibrationSettings = "CalibrationSettings";
 

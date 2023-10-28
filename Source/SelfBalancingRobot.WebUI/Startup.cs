@@ -22,14 +22,17 @@ public class Startup
     public virtual void ConfigureServices(IServiceCollection services)
     {
         var appSettings = new AppSettings();
+        var deviceSettings = new DeviceSettings();
         var menuSettings = new MenuSettings();
         var calibrationSettings = new CalibrationSettings();
 
         Configuration.Bind(Utils.ConfigName_AppSettings, appSettings);
+        Configuration.Bind(Utils.ConfigName_DeviceSettings, deviceSettings);
         Configuration.Bind(Utils.ConfigName_MenuSettings, menuSettings);
         Configuration.Bind(Utils.ConfigName_CalibrationSettings, calibrationSettings);
 
         services.AddSingleton(appSettings);
+        services.AddSingleton(deviceSettings);
         services.AddSingleton(menuSettings);
         services.AddSingleton(calibrationSettings);
 
@@ -78,9 +81,9 @@ public class Startup
         services.AddSingleton<WritableConfiguration>();
 
         services.AddSingleton<IMUContext>();
+        services.AddSingleton<MotorContext>();
         services.AddSingleton<ControlContext>();
-        //services.AddSingleton<MotorContext>();
-        //services.AddSingleton<StabilizerContext>();
+        services.AddSingleton<StabilizerContext>();
 
         services.AddSingleton<IMUHub>();
         services.AddSingleton<CalibrationHub>();

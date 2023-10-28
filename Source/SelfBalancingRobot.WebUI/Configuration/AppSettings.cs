@@ -7,12 +7,6 @@ namespace SelfBalancingRobot.WebUI.Configuration;
 
 public class AppSettings
 {
-    [JsonConverter(typeof(StringEnumConverter))]
-    public IMUType IMUType { get; set; }
-
-    public int? IMUAddress { get; set; }
-    public int I2CBusId { get; set; }
-
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public Dictionary<string, string> Headers { get; set; }
 

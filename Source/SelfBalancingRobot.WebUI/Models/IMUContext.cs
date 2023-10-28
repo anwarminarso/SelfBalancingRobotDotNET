@@ -8,9 +8,9 @@ using System.Numerics;
 
 namespace SelfBalancingRobot.WebUI.Models;
 
-public class IMUContext
+public class IMUContext : BaseMonitoringContext
 {
-    private readonly AppSettings appSettings;
+    private readonly DeviceSettings deviceSettings;
     private readonly CalibrationSettings calibSettings;
     private readonly IMUHub imuHub;
     private readonly CalibrationHub calHub;
@@ -18,8 +18,7 @@ public class IMUContext
     public const int MaxHistoryLength = 30;
     private const int MaxHistoryFreq = 10;  // Freq Hz
 
-    private Task monitoringTask;
-    private CancellationTokenSource monitoringTaskToken;
+    private int loopDelay = 0;
     private DCM dcm = new DCM();
     private IIMU imu = null;
 
@@ -32,9 +31,9 @@ public class IMUContext
 
     private Vector3 gyroOffsets = new Vector3();
     private Vector3 accOffsets = new Vector3();
-    public IMUContext(AppSettings appSettings, CalibrationSettings calibSettings, IMUHub imuHub, CalibrationHub calHub)
+    public IMUContext(DeviceSettings deviceSettings, CalibrationSettings calibSettings, IMUHub imuHub, CalibrationHub calHub)
     {
-        this.appSettings = appSettings;
+        this.deviceSettings = deviceSettings;
         this.calibSettings = calibSettings;
         this.imuHub = imuHub;
         this.calHub = calHub;
@@ -79,9 +78,9 @@ public class IMUContext
         Console.WriteLine("Begin IMU Init");
         dataHistList.Clear();
         var imuAddress = -1;
-        if (!appSettings.IMUAddress.HasValue)
+        if (!deviceSettings.IMUAddress.HasValue)
         {
-            switch (appSettings.IMUType)
+            switch (deviceSettings.IMUType)
             {
                 case IMUType.MPU6000:
                 case IMUType.MPU6050:
@@ -97,13 +96,13 @@ public class IMUContext
             }
         }
         else
-            imuAddress = appSettings.IMUAddress.GetValueOrDefault();
-        Console.WriteLine($"I2C Bus Id: {appSettings.I2CBusId}, I2C Address: {imuAddress}");
+            imuAddress = deviceSettings.IMUAddress.GetValueOrDefault();
+        Console.WriteLine($"I2C Bus Id: {deviceSettings.I2CBusId}, I2C Address: {imuAddress}");
 #if FAKE_IMU
         LoadFake();
 #else
-        device = I2cDevice.Create(new I2cConnectionSettings(appSettings.I2CBusId, imuAddress));
-        switch (appSettings.IMUType)
+        device = I2cDevice.Create(new I2cConnectionSettings(deviceSettings.I2CBusId, imuAddress));
+        switch (deviceSettings.IMUType)
         {
             case IMUType.MPU6000:
             case IMUType.MPU6050:
@@ -125,42 +124,30 @@ public class IMUContext
         Console.WriteLine("End IMU Init");
     }
 
-    public void StartMonitoring()
+    public override void OnStartMonitoring()
     {
-        if (monitoringTask == null || monitoringTask.IsCanceled)
-        {
-            monitoringTaskToken = new CancellationTokenSource();
-            var delay = Convert.ToInt32(1000 / MaxHistoryFreq);
-            monitoringTask = new Task(() =>
-            {
-                dcm.Reset();
-                accOffsets = calibSettings.AccelOffsets.ToVector3();
-                gyroOffsets = calibSettings.GyroOffsets.ToVector3();
-                while (!monitoringTaskToken.IsCancellationRequested)
-                {
-                    //Utils.Delay(delay, false);
-                    monitoringTaskToken.Token.WaitHandle.WaitOne(delay);
-
-#if FAKE_IMU
-                    currentFakeIndex++;
-                    if (currentFakeIndex >= accLst.Count)
-                        currentFakeIndex = 0;
-#endif
-                    var rawAcc = GetRawAccel();
-                    var rawGyro = GetRawGyro();
-                    var acc = rawAcc - accOffsets;
-                    var gyro = rawGyro - gyroOffsets;
-                    var data = UpdateIMU(gyro, acc);
-                    imuHub.SendUpdate(data);
-                    calHub.SendRawAcc(rawAcc);
-                    calHub.SendRawGyro(rawGyro);
-                }
-            }, monitoringTaskToken.Token);
-            monitoringTask.Start();
-        }
+        loopDelay = Convert.ToInt32(1000 / MaxHistoryFreq);
+        dcm.Reset();
+        accOffsets = calibSettings.AccelOffsets.ToVector3();
+        gyroOffsets = calibSettings.GyroOffsets.ToVector3();
     }
-
-
+    public override void MonitoringLoop()
+    {
+        base.monitoringTaskToken.Token.WaitHandle.WaitOne(loopDelay);
+#if FAKE_IMU
+        currentFakeIndex++;
+        if (currentFakeIndex >= accLst.Count)
+            currentFakeIndex = 0;
+#endif
+        var rawAcc = GetRawAccel();
+        var rawGyro = GetRawGyro();
+        var acc = rawAcc - accOffsets;
+        var gyro = rawGyro - gyroOffsets;
+        var data = UpdateIMU(gyro, acc);
+        imuHub.SendUpdate(data);
+        calHub.SendRawAcc(rawAcc);
+        calHub.SendRawGyro(rawGyro);
+    }
     public void HardwareCalibrate()
     {
         this.StopMonitoring();
@@ -168,25 +155,6 @@ public class IMUContext
         imu.HardwareCalibrate();
 #endif
         this.StartMonitoring();
-    }
-
-    public void StopMonitoring()
-    {
-
-        if (monitoringTaskToken != null)
-        {
-            monitoringTaskToken.Cancel();
-            while (monitoringTask.Status == TaskStatus.Running)
-            {
-            }
-            if (monitoringTask != null)
-            {
-                monitoringTask.Dispose();
-                monitoringTask = null;
-            }
-            monitoringTaskToken.Dispose();
-            monitoringTaskToken = null;
-        }
     }
 
     private DataHistory UpdateIMU(Vector3 gyro, Vector3 acc)

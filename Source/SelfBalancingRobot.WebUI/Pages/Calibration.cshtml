@@ -434,8 +434,8 @@
             a2n.showConfirm(function (result) {
                 if (result) {
                     accCount = 0;
-                    accMax = [0.0, 0.0, 0.0];
-                    accMin = [0.0, 0.0, 0.0];
+                    accMax = [null, null, null];
+                    accMin = [null, null, null];
                     accOffset = [0.0, 0.0, 0.0];
                     $accCount.val(0);
                     $accTempOffsetX.val(0.0);
@@ -648,11 +648,15 @@
             connection.on("UpdateAcc", function (result) {
                 accCount++;
                 for (var i = 0; i < 3; i++) {
-                    if (accMin[i] > result[i])
+                    if (accMin[i] == null)
                         accMin[i] = result[i];
-                    if (accMax[i] < result[i])
+                    else if (accMin[i] > result[i])
+                        accMin[i] = result[i];
+                    if (accMax[i] == null)
                         accMax[i] = result[i];
-                    accOffset[i] = (accMax[i] - accMin[i]) / 2.0;
+                    else if (accMax[i] < result[i])
+                        accMax[i] = result[i];
+                    accOffset[i] = (accMin[i] + accMax[i]) / 2.0;
                 }
                 $accCount.val(accCount);
                 $accMinX.val(accMin[0]);

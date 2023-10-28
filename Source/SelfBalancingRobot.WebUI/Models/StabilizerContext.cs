@@ -4,12 +4,16 @@ using System.Numerics;
 
 namespace SelfBalancingRobot.WebUI.Models;
 
-public class StabilizerContext
+public class StabilizerContext : BaseMonitoringContext
 {
     private readonly IMUContext imuContext;
     private readonly ControlContext controlContext;
     private readonly CalibrationSettings calibrationSettings;
     private readonly MotorContext motorContext;
+
+
+    private const int StabilizerFrequency = 50;
+    private int loopDelay = 0;
 
     private bool stabilzerOn = false;
     private DateTime lastTime;
@@ -169,4 +173,16 @@ public class StabilizerContext
     {
         return axisPID[0] * X + axisPID[1] * Y + axisPID[2] * Z;
     }
+
+
+    public override void OnStartMonitoring()
+    {
+        loopDelay = Convert.ToInt32(1000 / StabilizerFrequency);
+        Reset();
+    }
+    public override void MonitoringLoop()
+    {
+        Stabilize();
+    }
+
 }
