@@ -2,8 +2,8 @@
 @model IndexModel
 @inject SelfBalancingRobot.WebUI.Models.IMUContext imuContext
 @{
-    ViewData["code"] = "SYS";
-    var mn = menuSettings.MenuList.Where(t => t.code == "SYS").FirstOrDefault();
+    ViewData["code"] = "3D";
+    var mn = menuSettings.MenuList.Where(t => t.code == "3D").FirstOrDefault();
     ViewData["Title"] = mn != null ? mn.description : "";
     var histLst = imuContext.GetHistory();
     var imuData = histLst.LastOrDefault();

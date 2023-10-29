@@ -1,0 +1,79 @@
+﻿@page
+@model SelfBalancingRobot.WebUI.Pages.SystemModel
+@{
+    ViewData["code"] = "SYS";
+    var mn = menuSettings.MenuList.Where(t => t.code == "SYS").FirstOrDefault();
+    ViewData["Title"] = mn != null ? mn.description : "";
+}
+@section Head {
+    <style type="text/css">
+        .nav-tabs .nav-item .nav-link {
+            /* background-color: #0080FF;
+                    color: #FFF; */
+        }
+        .nav-tabs .nav-item .nav-link.active {
+            background-color: #0080FF;
+            color: #FFF;
+        }
+
+        .nav-tabs .nav-item .nav-link.active i {
+            color: #FFF !important;
+        }
+    </style>
+}
+@Html.AntiForgeryToken();
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="card-title">Maintenance</h4>
+            </div>
+            <div class="card-body">
+                <form>
+                    <button type="button" id="btnResetIMU" onclick="ResetIMU()" class="btn btn-danger btn-block"><i class="fal fal fa-sensor mr-2"></i> Reset IMU</button>
+                    <button type="button" id="btnResetSystem" onclick="ResetSystem()" class="btn btn-danger btn-block"><i class="fal fa-power-off mr-2"></i> Reset System</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+            
+@section Scripts {
+    <script type="text/javascript">
+        function ResetIMU() {
+            a2n.showConfirm(function (result) {
+                if (result) {
+                    a2n.submitAjaxPost('/System?handler=ResetIMU', null,
+                        function (data, status, xhr) {
+                            a2n.showNotificationDialog("IMU has been reset");
+                        },
+                        function (req, status, error) {
+                            showErrorDialog(req.responseText);
+                        }
+                    );
+                }
+            }, {
+                title: `<i class='fal fa-times-circle text-danger mr-2'></i> Are you sure want to reset IMU?`
+            });
+
+        }
+
+        function ResetSystem() {
+            a2n.showConfirm(function (result) {
+                if (result) {
+                    a2n.submitAjaxPost('/System?handler=ResetSystem', null,
+                        function (data, status, xhr) {
+                            a2n.showNotificationDialog("System has been reset");
+                        },
+                        function (req, status, error) {
+                            showErrorDialog(req.responseText);
+                        }
+                    );
+                }
+            }, {
+                title: `<i class='fal fa-times-circle text-danger mr-2'></i> Are you sure want to reset system ?`
+            });
+        }    
+    </script>
+}
