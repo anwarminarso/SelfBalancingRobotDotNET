@@ -4,23 +4,16 @@ using System.Numerics;
 
 namespace SelfBalancingRobot.WebUI.Models;
 
-public class StabilizerContext : BaseMonitoringContext
+public class StabilizerContext
 {
-    private readonly IMUContext imuContext;
-    private readonly ControlContext controlContext;
     private readonly CalibrationSettings calibrationSettings;
-    private readonly MotorContext motorContext;
 
 
-    private const int StabilizerFrequency = 50;
-    private int loopDelay = 0;
-
-    private bool stabilzerOn = false;
+    public bool RCOnline { get; set; }
     private DateTime lastTime;
     private DateTime currentTime;
     private long dt;
     private int failsafeCounter;
-    private bool rcOnline;
     private float[] MotorSpeed = new float[2];
 
     private float error, errorAngle;
@@ -40,18 +33,14 @@ public class StabilizerContext : BaseMonitoringContext
     private bool isStarted = false;
 
 
-    public StabilizerContext(IMUContext imuContext, CalibrationSettings calibrationSettings, ControlContext controlContext, MotorContext motorContext)
+    public StabilizerContext(CalibrationSettings calibrationSettings)
     {
-        this.imuContext = imuContext;
-        this.controlContext = controlContext;
         this.calibrationSettings = calibrationSettings;
-        this.motorContext = motorContext;
     }
 
     public void Reset()
     {
-        stabilzerOn = false;
-        rcOnline = false;
+        RCOnline = false;
         errorAngleI = 0;
         errorGyroI = new Vector3();
         error = 0;
@@ -63,11 +52,10 @@ public class StabilizerContext : BaseMonitoringContext
         lastDeg = 0;
         deltaDeg1 = 0;
         deltaDeg2 = 0;
-        
-
+        currentTime = DateTime.Now;
     }
 
-    private void Stabilize()
+    public (float leftSpeed, float rightSpeed) Stabilize(Vector3 gyro, Vector3 ypr, float controlX, float controlY)
     {
         if (!isStarted)
         {
@@ -79,29 +67,25 @@ public class StabilizerContext : BaseMonitoringContext
         currentTime = DateTime.Now;
 
         dt = Convert.ToInt64((currentTime - lastTime).TotalMilliseconds);
-        if (rcOnline && failsafeCounter > 250)
+        if (RCOnline && failsafeCounter > 250)
         {
-            controlContext.ControlX = 0.0f;
-            controlContext.ControlY = 0.0f;
+            controlX = 0.0f;
+            controlY = 0.0f;
             failsafeCounter = 0;
-            rcOnline = false;
+            RCOnline = false;
         }
-        else if (rcOnline)
+        else if (RCOnline)
         {
             failsafeCounter++;
         }
         else
         {
-            controlContext.ControlX = 0.0f;
-            controlContext.ControlY = 0.0f;
+            controlX = 0.0f;
+            controlY = 0.0f;
         }
 
-
-        var ypr = imuContext.GetYPR();
-        var gyro = imuContext.GetGyro();
-
         #region PITCH
-        rc = controlContext.ControlY * 0.1f;
+        rc = controlY * 0.1f;
         deltaDeg = ypr[1] - lastDeg;
         deltaDeg = deltaDeg * dt / 1000.0f;
 
@@ -139,7 +123,7 @@ public class StabilizerContext : BaseMonitoringContext
         #endregion
 
         #region Yaw
-        rc = controlContext.ControlX;
+        rc = controlX;
         gyroTemp = gyro[2]; // z axis
         error = rc - gyroTemp;
         delta = gyroTemp - lastGyro[2];
@@ -166,7 +150,8 @@ public class StabilizerContext : BaseMonitoringContext
 
         var leftSpeed = Utils.map(MotorSpeed[0], -4095, 4095, -1000, 1000);
         var rightSpeed = Utils.map(MotorSpeed[1], -4095, 4095, -1000, 1000);
-        motorContext.Drive(leftSpeed, rightSpeed);
+
+        return (leftSpeed, rightSpeed);
     }
 
     private float PIDMix(int X, int Y, int Z)
@@ -174,15 +159,5 @@ public class StabilizerContext : BaseMonitoringContext
         return axisPID[0] * X + axisPID[1] * Y + axisPID[2] * Z;
     }
 
-
-    public override void OnStartMonitoring()
-    {
-        loopDelay = Convert.ToInt32(1000 / StabilizerFrequency);
-        Reset();
-    }
-    public override void MonitoringLoop()
-    {
-        Stabilize();
-    }
 
 }

@@ -9,6 +9,7 @@ using SelfBalancingRobot.WebUI.Hubs;
 using SelfBalancingRobot.WebUI.Models;
 using SelfBalancingRobot.WebUI.Resources;
 using SelfBalancingRobot.WebUI.Extensions;
+using System.Device.Gpio;
 
 namespace SelfBalancingRobot.WebUI;
 
@@ -81,16 +82,23 @@ public class Startup
         services.AddSingleton<WritableConfiguration>();
 
         services.AddSingleton<IMUContext>();
+#if NO_GPIO
         services.AddSingleton<MotorContext>();
-        services.AddSingleton<ControlContext>();
+#else
+        GpioController gpio = new GpioController(PinNumberingScheme.Logical);
+        var motorContext = new MotorContext(gpio, deviceSettings);
+        services.AddSingleton<MotorContext>(motorContext);
+#endif
         services.AddSingleton<StabilizerContext>();
+        services.AddSingleton<ControlContext>();
 
         services.AddSingleton<IMUHub>();
         services.AddSingleton<CalibrationHub>();
         services.AddSingleton<ControlHub>();
     }
 
-    public virtual void Configure(IApplicationBuilder app, IWebHostEnvironment env, AppSettings appSettings, IMUContext imuContext)
+    public virtual void Configure(IApplicationBuilder app, IWebHostEnvironment env, AppSettings appSettings, 
+        IMUContext imuContext, MotorContext motorContext, StabilizerContext stabilizerContext)
     {
         app.UseForwardedHeaders(new ForwardedHeadersOptions()
         {
@@ -158,10 +166,11 @@ public class Startup
         });
 
 
-        #region Init IMU
+        #region Init
         {
             imuContext.Init();
             imuContext.StartMonitoring();
+            motorContext.Init();
         }
         #endregion
     }

@@ -27,10 +27,10 @@ public class MotorContext
         }
     }
 
-    public MotorContext(DeviceSettings deviceSettings)
+    public MotorContext(GpioController gpio, DeviceSettings deviceSettings)
     {
+        this.gpio = gpio;
         this.deviceSettings = deviceSettings;
-        gpio = new GpioController(PinNumberingScheme.Logical);
     }
 
     public void Init()
@@ -60,6 +60,8 @@ public class MotorContext
     {
         if (!isStandby || gpio.Read(deviceSettings.StandbyPin) == PinValue.High)
         {
+            leftMotor.Drive(0);
+            rightMotor.Drive(0);
             gpio.Write(deviceSettings.StandbyPin, PinValue.Low);
             isStandby = true;
             leftMotor.SetMotorState(MotorDriver.MotorState.DEFAULT);
@@ -87,3 +89,4 @@ public class MotorContext
         rightMotor.Brake(1000);
     }
 }
+

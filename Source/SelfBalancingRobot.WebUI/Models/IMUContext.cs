@@ -139,14 +139,23 @@ public class IMUContext : BaseMonitoringContext
         if (currentFakeIndex >= accLst.Count)
             currentFakeIndex = 0;
 #endif
-        var rawAcc = GetRawAccel();
-        var rawGyro = GetRawGyro();
-        var acc = rawAcc - accOffsets;
-        var gyro = rawGyro - gyroOffsets;
-        var data = UpdateIMU(gyro, acc);
-        imuHub.SendUpdate(data);
-        calHub.SendRawAcc(rawAcc);
-        calHub.SendRawGyro(rawGyro);
+        try
+        {
+            var rawAcc = GetRawAccel();
+            var rawGyro = GetRawGyro();
+            var acc = rawAcc - accOffsets;
+            var gyro = rawGyro - gyroOffsets;
+            var data = UpdateIMU(gyro, acc);
+            imuHub.SendUpdate(data);
+            calHub.SendRawAcc(rawAcc);
+            calHub.SendRawGyro(rawGyro);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"ERROR IMU Error: {ex.Message}");
+            Console.WriteLine($"ERROR IMU Trace: {ex.StackTrace}");
+            dcm.Reset();
+        }
     }
     public void HardwareCalibrate()
     {

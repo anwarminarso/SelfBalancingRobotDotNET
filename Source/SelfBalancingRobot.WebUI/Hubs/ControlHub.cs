@@ -11,16 +11,25 @@ public class ControlHub : Hub
     {
         this.controlContext = controlContext;
     }
+
+    [HubMethodName("JoystickEnable")]
+    public void JoystickEnable(bool value)
+    {
+        controlContext.JoystickEnabled = value;
+    }
+
     [HubMethodName("RCCommand")]
-    public async Task RCCommand(float joyX, float joyY)
+    public void RCCommand(float joyX, float joyY)
     {
         controlContext.RCCommand(joyX, joyY);
-        await Task.Delay(0);
     }
 
     [HubMethodName("ArmDisarm")]
-    public async Task ArmDisarm(bool arm)
+    public void ArmDisarm(bool arm)
     {
-        await Task.Delay(0);
+        if (arm)
+            controlContext.Activate();
+        else
+            controlContext.Deactivate();
     }
 }

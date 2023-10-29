@@ -21,7 +21,7 @@
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h4 class="card-title">Joystick</h4>
                 <div>
-                    <input id="cbCtrlEnable" type="checkbox" data-toggle="toggle" data-off="Disabled" data-on="Enabled" />
+                    <input id="cbCtrlEnable" type="checkbox" data-toggle="toggle" data-off="Disabled" data-on="Enabled" @(Model.JoystickEnabled ? "checked" : "") />
                 </div>
             </div>
             <div class="card-body">
@@ -35,7 +35,7 @@
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h4 class="card-title">State</h4>
                 <div>
-                    <input id="cbArm" type="checkbox" data-toggle="toggle" data-off="Disarmed" data-on="Armed" data-onstyle="danger" data-offstyle="success" />
+                    <input id="cbArm" type="checkbox" data-toggle="toggle" data-off="Disarmed" data-on="Armed" data-onstyle="danger" data-offstyle="success" @(Model.Armed ? "checked" : "") />
                 </div>
             </div>
             <div class="card-body">
@@ -93,18 +93,17 @@
             $("#frmJoy").attr("src", "/Joystick");
             $('#cbCtrlEnable').change(function () {
                 ctrlEnableState = $("#cbCtrlEnable").prop('checked');
+                cons.invoke("JoystickEnable", ctrlEnableState);
             });
             cons = new signalR.HubConnectionBuilder().withUrl("/ws/control").build();
             $('#cbArm').change(OnChangeArm);
-            cons.on("Update", function (result) {
-
-            });
             cons.start().then(function () {
                 RCTeleUpdate = setInterval(sendRCData, 50);
+                $('#cbCtrlEnable').trigger('change');
+                $('#cbArm').trigger('change');
             }).catch(function (err) {
                 return console.error(err.toString());
             });
-
         });
     </script>
 }
