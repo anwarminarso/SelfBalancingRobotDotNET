@@ -13,7 +13,7 @@ public class DeviceSettings
     public int I2CBusId { get; set; }
 
     public int StandbyPin { get; set; }
-
+    public int PIDLoopFreq { get; set; } = 50;
     public MotorSettings LeftMotor { get; set; }
     public MotorSettings RightMotor { get; set; }
 }

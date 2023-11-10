@@ -10,15 +10,37 @@ namespace SelfBalancingRobot.WebUI.Models;
 
 public class IMUContext : BaseMonitoringContext
 {
+
+    public delegate void IMUUpdated(Vector3 YPR, Vector3 gyro, Vector3 acc);
+    private Dictionary<int, int> dicPinNoVsLogical = new();
+    private Dictionary<int, int> dicLogicalVsPinNo = new();
+
+    private IMUUpdated _OnIMUUpdated;
+    public event IMUUpdated OnIMUUpdated
+    {
+        add
+        {
+            if (_OnIMUUpdated == null || !_OnIMUUpdated.GetInvocationList().Contains(value))
+                _OnIMUUpdated += value;
+        }
+        remove
+        {
+            if (_OnIMUUpdated != null && _OnIMUUpdated.GetInvocationList().Contains(value))
+                _OnIMUUpdated -= value;
+        }
+    }
+
     private readonly DeviceSettings deviceSettings;
     private readonly CalibrationSettings calibSettings;
     private readonly IMUHub imuHub;
     private readonly CalibrationHub calHub;
 
     public const int MaxHistoryLength = 30;
-    private const int MaxHistoryFreq = 10;  // Freq Hz
+    private const int MessageFreq = 10;  // Freq Hz
 
     private int loopDelay = 0;
+    private TimeSpan loopDelayTS;
+    private TimeSpan messageDelayTS;
     private DCM dcm = new DCM();
     private IIMU imu = null;
 
@@ -31,6 +53,9 @@ public class IMUContext : BaseMonitoringContext
 
     private Vector3 gyroOffsets = new Vector3();
     private Vector3 accOffsets = new Vector3();
+
+    private DateTime lastMessage = DateTime.Now;
+    private DateTime lastRead = DateTime.Now;
     public IMUContext(DeviceSettings deviceSettings, CalibrationSettings calibSettings, IMUHub imuHub, CalibrationHub calHub)
     {
         this.deviceSettings = deviceSettings;
@@ -126,14 +151,22 @@ public class IMUContext : BaseMonitoringContext
 
     public override void OnStartMonitoring()
     {
-        loopDelay = Convert.ToInt32(1000 / MaxHistoryFreq);
+        loopDelayTS = TimeSpan.FromMilliseconds(Convert.ToInt32(1000 / deviceSettings.PIDLoopFreq));
+        loopDelay = Convert.ToInt32(1000 / deviceSettings.PIDLoopFreq);
+        messageDelayTS = TimeSpan.FromMilliseconds(Convert.ToInt32(1000 / MessageFreq));
         dcm.Reset();
         accOffsets = calibSettings.AccelOffsets.ToVector3();
         gyroOffsets = calibSettings.GyroOffsets.ToVector3();
+        lastMessage = DateTime.Now;
+        lastRead = DateTime.Now;
     }
     public override void MonitoringLoop()
     {
-        base.monitoringTaskToken.Token.WaitHandle.WaitOne(loopDelay);
+        DateTime now = DateTime.Now;
+        if ((now - lastRead) < loopDelayTS)
+            return;
+        //base.monitoringTaskToken.Token.WaitHandle.WaitOne()
+        //base.monitoringTaskToken.Token.WaitHandle.WaitOne(loopDelay);
 #if FAKE_IMU
         currentFakeIndex++;
         if (currentFakeIndex >= accLst.Count)
@@ -145,10 +178,18 @@ public class IMUContext : BaseMonitoringContext
             var rawGyro = GetRawGyro();
             var acc = rawAcc - accOffsets;
             var gyro = rawGyro - gyroOffsets;
-            var data = UpdateIMU(gyro, acc);
-            imuHub.SendUpdate(data);
-            calHub.SendRawAcc(rawAcc);
-            calHub.SendRawGyro(rawGyro);
+            //var data = UpdateIMU(gyro, acc);
+            UpdateIMU(gyro, acc);
+            lastRead = DateTime.Now;
+            _OnIMUUpdated?.Invoke(dcm.GetYPR(), gyro, acc);
+            if ((lastRead - lastMessage) >= messageDelayTS)
+            {
+                var data = UpdateHistory(lastRead, gyro, acc, dcm.GetYPR());
+                imuHub.SendUpdate(data);
+                calHub.SendRawAcc(rawAcc);
+                calHub.SendRawGyro(rawGyro);
+                lastMessage = DateTime.Now;
+            }
         }
         catch (Exception ex)
         {
@@ -166,11 +207,11 @@ public class IMUContext : BaseMonitoringContext
         this.StartMonitoring();
     }
 
-    private DataHistory UpdateIMU(Vector3 gyro, Vector3 acc)
+    private void UpdateIMU(Vector3 gyro, Vector3 acc)
     {
-        var time = DateTime.Now;
+        //var time = DateTime.Now;
         dcm.Update(gyro, acc);
-        return UpdateHistory(time, gyro, acc, dcm.GetYPR());
+        //return UpdateHistory(time, gyro, acc, dcm.GetYPR());
     }
     private DataHistory UpdateHistory(DateTime time, Vector3 gyro, Vector3 acc, Vector3 ypr)
     {
