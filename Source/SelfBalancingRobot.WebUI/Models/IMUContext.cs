@@ -56,6 +56,10 @@ public class IMUContext : BaseMonitoringContext
 
     private DateTime lastMessage = DateTime.Now;
     private DateTime lastRead = DateTime.Now;
+
+    private Vector3 lastYPR = new Vector3();
+    private Vector3 lastGyro = new Vector3();
+    private Vector3 lastAcc = new Vector3();
     public IMUContext(DeviceSettings deviceSettings, CalibrationSettings calibSettings, IMUHub imuHub, CalibrationHub calHub)
     {
         this.deviceSettings = deviceSettings;
@@ -162,11 +166,11 @@ public class IMUContext : BaseMonitoringContext
     }
     public override void MonitoringLoop()
     {
-        DateTime now = DateTime.Now;
-        if ((now - lastRead) < loopDelayTS)
-            return;
+        //DateTime now = DateTime.Now;
+        //if ((now - lastRead) < loopDelayTS)
+        //    return;
         //base.monitoringTaskToken.Token.WaitHandle.WaitOne()
-        //base.monitoringTaskToken.Token.WaitHandle.WaitOne(loopDelay);
+        base.monitoringTaskToken.Token.WaitHandle.WaitOne(loopDelay);
 #if FAKE_IMU
         currentFakeIndex++;
         if (currentFakeIndex >= accLst.Count)
@@ -174,17 +178,17 @@ public class IMUContext : BaseMonitoringContext
 #endif
         try
         {
-            var rawAcc = GetRawAccel();
             var rawGyro = GetRawGyro();
-            var acc = rawAcc - accOffsets;
-            var gyro = rawGyro - gyroOffsets;
-            //var data = UpdateIMU(gyro, acc);
-            UpdateIMU(gyro, acc);
+            lastGyro = rawGyro - gyroOffsets;
             lastRead = DateTime.Now;
-            _OnIMUUpdated?.Invoke(dcm.GetYPR(), gyro, acc);
+            _OnIMUUpdated?.Invoke(lastYPR, lastGyro, lastAcc);
             if ((lastRead - lastMessage) >= messageDelayTS)
             {
-                var data = UpdateHistory(lastRead, gyro, acc, dcm.GetYPR());
+                var rawAcc = GetRawAccel();
+                lastAcc = rawAcc - accOffsets;
+                UpdateIMU(lastGyro, lastAcc);
+                lastYPR = dcm.GetYPR();
+                var data = UpdateHistory(lastRead, lastGyro, lastAcc, lastYPR);
                 imuHub.SendUpdate(data);
                 calHub.SendRawAcc(rawAcc);
                 calHub.SendRawGyro(rawGyro);
